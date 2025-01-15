@@ -58,7 +58,8 @@ class WooCommerceOrder(WooCommerceResource):
 		"""
 		Initialise the WooCommerce API
 		"""
-		wc_servers = frappe.get_all("WooCommerce Server")
+		available_company = frappe.db.get_list("Company", pluck="name")
+		wc_servers = frappe.get_all("WooCommerce Server", filters={"company": ("in", available_company)})
 		wc_servers = [frappe.get_doc("WooCommerce Server", server.name) for server in wc_servers]
 
 		wc_api_list = [
