@@ -36,7 +36,8 @@ class WooCommerceResource(Document):
 		"""
 		Initialise the WooCommerce API
 		"""
-		wc_servers = frappe.get_all("WooCommerce Server")
+		available_company = frappe.db.get_list("Company", pluck="name")
+		wc_servers = frappe.get_all("WooCommerce Server", filters={"company": ("in", available_company)})
 		wc_servers = [frappe.get_doc("WooCommerce Server", server.name) for server in wc_servers]
 
 		wc_api_list = [
@@ -136,7 +137,7 @@ class WooCommerceResource(Document):
 
 			# Map Frappe filters to WooCommerce parameters
 			if "filters" in args and args["filters"]:
-				updated_params = get_wc_parameters_from_filters(args["filters"])
+				updated_params = get_wc_parameters_from_filters(args)
 				params.update(updated_params)
 
 			# Initialse required variables
@@ -456,7 +457,7 @@ def generate_woocommerce_record_name_from_domain_and_id(
 	)
 
 
-def get_wc_parameters_from_filters(filters):
+def get_wc_parameters_from_filters(args):
 	"""
 	http://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-orders
 	https://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-products
@@ -472,9 +473,25 @@ def get_wc_parameters_from_filters(filters):
 
 	params = {}
 
-	for filter in filters:
+	for filter in args["filters"]:
+
 		if filter[1] not in supported_filter_fields:
 			frappe.throw(f"Unsupported filter for field: {filter[1]}")
+
+		if filter[1] == "":
+			if filter[2] == "in":
+			# e.g. ['WooCommerce Order', 'id', 'in', ['11', '12', '13']]
+			params["include"] = ",".join(filter[3])
+			continue
+			args["servers"].append(filter[3])  # Add the server to args.servers
+			continue 
+
+		if filter[1] == "woocommerce_server" and filter[2] == "=":
+			args.setdefault("servers", []).append(filter[3])
+			continue
+		if filter[1] == "woocommerce_server" and filter[2] == "in":
+			args.setdefault("servers", []).extend(filter[3])
+			continue
 		if filter[1] == "date_created" and filter[2] == "<":
 			# e.g. ['WooCommerce Order', 'date_created', '<', '2023-01-01']
 			params["before"] = filter[3]
