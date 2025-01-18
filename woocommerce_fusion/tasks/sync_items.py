@@ -374,11 +374,11 @@ class SynchroniseItem(SynchroniseWooCommerce):
 
 		# Handle variants' attributes
 		if wc_product.type in ["variable", "variation"]:
-			self.create_or_update_item_attributes(wc_product)
 			wc_attributes = json.loads(wc_product.attributes)
+			self.create_or_update_item_attributes(wc_product, wc_attributes)
 			for wc_attribute in wc_attributes:
 				row = item.append("attributes")
-				row.attribute = wc_attribute["name"]
+				row.attribute = wc_attribute.get("_name") or wc_attribute["name"]
 				if wc_product.type == "variation":
 					row.attribute_value = wc_attribute["option"]
 
@@ -424,20 +424,22 @@ class SynchroniseItem(SynchroniseWooCommerce):
 
 		self.set_sync_hash()
 
-	def create_or_update_item_attributes(self, wc_product: WooCommerceProduct):
+	def create_or_update_item_attributes(self, wc_product: WooCommerceProduct, wc_attributes):
 		"""
 		Create or update an Item Attribute
 		"""
-		if wc_product.attributes:
-			wc_attributes = json.loads(wc_product.attributes)
+		wc_server = frappe.get_cached_doc("WooCommerce Server", wc_product.woocommerce_server)
+
+		if wc_attributes:
 			for wc_attribute in wc_attributes:
-				if frappe.db.exists("Item Attribute", wc_attribute["name"]):
+				itm_attr = frappe.db.exists("Item Attribute", {"attribute_name": wc_attribute["name"], "custom_company": wc_server.company})
+				if itm_attr:
 					# Get existing Item Attribute
-					item_attribute = frappe.get_doc("Item Attribute", wc_attribute["name"])
+					item_attribute = frappe.get_doc("Item Attribute", itm_attr)
 				else:
 					# Create a Item Attribute
 					item_attribute = frappe.get_doc(
-						{"doctype": "Item Attribute", "attribute_name": wc_attribute["name"]}
+						{"doctype": "Item Attribute", "attribute_name": wc_attribute["name"], "custom_company": wc_server.company}
 					)
 
 				# Get list of attribute options.
@@ -463,6 +465,8 @@ class SynchroniseItem(SynchroniseWooCommerce):
 					item_attribute.insert()
 				else:
 					item_attribute.save()
+
+				wc_attribute["_name"] = item_attribute.name
 
 	def set_item_fields(self):
 		"""

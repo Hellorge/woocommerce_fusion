@@ -478,14 +478,6 @@ def get_wc_parameters_from_filters(args):
 		if filter[1] not in supported_filter_fields:
 			frappe.throw(f"Unsupported filter for field: {filter[1]}")
 
-		if filter[1] == "":
-			if filter[2] == "in":
-			# e.g. ['WooCommerce Order', 'id', 'in', ['11', '12', '13']]
-			params["include"] = ",".join(filter[3])
-			continue
-			args["servers"].append(filter[3])  # Add the server to args.servers
-			continue 
-
 		if filter[1] == "woocommerce_server" and filter[2] == "=":
 			args.setdefault("servers", []).append(filter[3])
 			continue

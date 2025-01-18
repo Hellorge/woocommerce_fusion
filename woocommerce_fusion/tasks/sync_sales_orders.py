@@ -506,6 +506,7 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		existing_customer = frappe.get_value(
 			"Customer", {"woocommerce_identifier": customer_identifier}, "name"
 		)
+		wc_server = frappe.get_cached_doc("WooCommerce Server", wc_order.woocommerce_server)
 
 		if not existing_customer:
 			# Create Customer
@@ -513,6 +514,7 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 			customer.woocommerce_identifier = customer_identifier
 			customer.customer_type = "Company" if company_name else "Individual"
 			customer.woocommerce_is_guest = is_guest
+			customer.custom_company = wc_server.company
 		else:
 			# Edit Customer
 			customer = frappe.get_doc("Customer", existing_customer)
@@ -645,6 +647,13 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		raw_billing_data = json.loads(wc_order.billing)
 		raw_shipping_data = json.loads(wc_order.shipping)
 
+		wc_server = frappe.get_cached_doc("WooCommerce Server", wc_order.woocommerce_server)
+		raw_billing_data["company"] = wc_server.company
+		raw_shipping_data["company"] = wc_server.company
+
+		if not raw_shipping_data.get("first_name"):
+			raw_shipping_data = raw_billing_data
+
 		address_keys_to_compare = [
 			"first_name",
 			"last_name",
@@ -712,9 +721,10 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		address.address_type = address_type
 		address.address_line1 = raw_data.get("address_1", "Not Provided")
 		address.address_line2 = raw_data.get("address_2", "Not Provided")
+		address.company = raw_data.get("company")
 		address.city = raw_data.get("city", "Not Provided")
 		address.country = frappe.get_value("Country", {"code": raw_data.get("country", "IN").lower()})
-		address.state = raw_data.get("state")
+		address.state = get_state_name(raw_data.get("state"))
 		address.pincode = raw_data.get("postcode")
 		address.phone = raw_data.get("phone")
 		address.address_title = (
@@ -739,9 +749,10 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 		address.address_line1 = raw_data.get("address_1", "Not Provided")
 		address.address_line2 = raw_data.get("address_2", "Not Provided")
+		address.company = raw_data.get("company")
 		address.city = raw_data.get("city", "Not Provided")
 		address.country = frappe.get_value("Country", {"code": raw_data.get("country", "IN").lower()})
-		address.state = raw_data.get("state")
+		address.state = get_state_name(raw_data.get("state"))
 		address.pincode = raw_data.get("postcode")
 		address.phone = raw_data.get("phone")
 		address.address_title = (
@@ -891,3 +902,47 @@ def get_addresses_linking_to(doctype, docname, fields=None):
 			["Dynamic Link", "link_name", "=", docname],
 		],
 	)
+
+
+def get_state_name(abbr):
+	state_map = {
+		'AN': 'Andaman and Nicobar Islands',
+		'AP': 'Andhra Pradesh',
+		'AR': 'Arunachal Pradesh',
+		'AS': 'Assam',
+		'BR': 'Bihar',
+		'CH': 'Chandigarh',
+		'CT': 'Chhattisgarh',
+		'DN': 'Dadra and Nagar Haveli',
+		'DD': 'Daman and Diu',
+		'DL': 'Delhi',
+		'GA': 'Goa',
+		'GJ': 'Gujarat',
+		'HR': 'Haryana',
+		'HP': 'Himachal Pradesh',
+		'JK': 'Jammu and Kashmir',
+		'JH': 'Jharkhand',
+		'KA': 'Karnataka',
+		'KL': 'Kerala',
+		'LA': 'Ladakh',
+		'LD': 'Lakshadweep',
+		'MP': 'Madhya Pradesh',
+		'MH': 'Maharashtra',
+		'MN': 'Manipur',
+		'ML': 'Meghalaya',
+		'MZ': 'Mizoram',
+		'NL': 'Nagaland',
+		'OR': 'Odisha',
+		'PY': 'Puducherry',
+		'PB': 'Punjab',
+		'RJ': 'Rajasthan',
+		'SK': 'Sikkim',
+		'TN': 'Tamil Nadu',
+		'TG': 'Telangana',
+		'TR': 'Tripura',
+		'UP': 'Uttar Pradesh',
+		'UT': 'Uttarakhand',
+		'WB': 'West Bengal'
+	}
+
+	return state_map.get(abbr) or abbr
