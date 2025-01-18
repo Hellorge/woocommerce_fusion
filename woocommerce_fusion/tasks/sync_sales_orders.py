@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import frappe
 from erpnext.selling.doctype.sales_order.sales_order import SalesOrder, make_sales_invoice
 from frappe import _
-from frappe.utils import get_datetime
+from frappe.utils import get_datetime, flt
 from frappe.utils.data import cstr, now
 
 from woocommerce_fusion.exceptions import SyncDisabledError
@@ -462,6 +462,7 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		self.set_items_in_sales_order(new_sales_order, wc_order)
 		new_sales_order.flags.ignore_mandatory = True
 		new_sales_order.flags.created_by_sync = True
+
 		new_sales_order.insert()
 
 		new_sales_invoice = None
@@ -613,7 +614,7 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 					"delivery_date": new_sales_order.delivery_date,
 					"qty": item.get("quantity"),
 					"rate": item.get("price")
-					if wc_server.use_actual_tax_type
+					if (wc_server.use_actual_tax_type or wc_server.use_item_tax_template)
 					else get_tax_inc_price_for_woocommerce_line_item(item),
 					"warehouse": wc_server.warehouse,
 					"discount_percentage": 100 if item.get("price") == 0 else 0,
