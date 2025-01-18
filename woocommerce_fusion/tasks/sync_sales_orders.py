@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Dict, Optional
 
 import frappe
-from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
+from erpnext.selling.doctype.sales_order.sales_order import SalesOrder, make_sales_invoice
 from frappe import _
 from frappe.utils import get_datetime
 from frappe.utils.data import cstr, now
@@ -254,7 +254,7 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 				sales_order.save()
 
 	def create_and_link_payment_entry(
-		self, wc_order: WooCommerceOrder, sales_order: SalesOrder
+		self, wc_order: WooCommerceOrder, sales_order: SalesOrder, sales_invoice=None
 	) -> bool:
 		"""
 		Create a Payment Entry for a WooCommerce Order that has been marked as Paid
@@ -271,6 +271,10 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 			and not sales_order.woocommerce_payment_entry
 			and sales_order.docstatus == 1
 		):
+
+			if sales_invoice:
+				sales_order.reload()
+
 			# Get Company Bank Account for this Payment Method
 			payment_method_bank_account_mapping = json.loads(wc_server.payment_method_bank_account_mapping)
 
@@ -459,11 +463,22 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		new_sales_order.flags.ignore_mandatory = True
 		new_sales_order.flags.created_by_sync = True
 		new_sales_order.insert()
+
+		new_sales_invoice = None
 		if wc_server.submit_sales_orders:
 			new_sales_order.submit()
 
+			if wc_server.create_sales_invoice:
+				new_sales_invoice = make_sales_invoice(new_sales_order.name)
+				new_sales_invoice.insert(ignore_mandatory=True)
+
+				try:
+					new_sales_invoice.submit()
+				except Exception as e:
+					frappe.msgprint(_("Error submitting invoice"))
+
 		new_sales_order.reload()
-		self.create_and_link_payment_entry(wc_order, new_sales_order)
+		self.create_and_link_payment_entry(wc_order, new_sales_order, new_sales_invoice)
 		new_sales_order.save()
 
 	def create_or_link_customer_and_address(self, wc_order: WooCommerceOrder) -> str:

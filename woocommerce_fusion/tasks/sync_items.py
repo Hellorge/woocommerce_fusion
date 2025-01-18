@@ -371,7 +371,7 @@ class SynchroniseItem(SynchroniseWooCommerce):
 
 		# Create Item
 		item = frappe.new_doc("Item")
-
+		item.custom_company=wc_server.company
 		# Handle variants' attributes
 		if wc_product.type in ["variable", "variation"]:
 			wc_attributes = json.loads(wc_product.attributes)

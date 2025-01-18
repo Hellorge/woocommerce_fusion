@@ -4,7 +4,7 @@
 frappe.ui.form.on('WooCommerce Order', {
 	refresh: function(frm) {
 		// Add a custom button to sync this WooCommerce order to a Sales Order
-		frm.add_custom_button(__("Sync this Order to ERPNext"), function () {
+		frm.add_custom_button(__("Sync this Order to Growth System"), function () {
 			frm.trigger("sync_sales_order");
 		}, __('Actions'));
 
@@ -16,7 +16,7 @@ frappe.ui.form.on('WooCommerce Order', {
 	},
 	sync_sales_order: function(frm) {
 		// Sync this WooCommerce Order
-		frappe.dom.freeze(__("Sync Order with ERPNext..."));
+		frappe.dom.freeze(__("Syncing Order to Growth System..."));
 		frappe.call({
 			method: "woocommerce_fusion.tasks.sync_sales_orders.run_sales_order_sync",
 			args: {
