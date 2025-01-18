@@ -604,7 +604,7 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 				found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
 
-			new_sales_order.append(
+			row = new_sales_order.append(
 				"items",
 				{
 					"item_code": found_item.name,
@@ -620,7 +620,18 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 				},
 			)
 
-			if not wc_server.use_actual_tax_type:
+			if wc_server.use_item_tax_template:
+				if item.get("tax_class"):
+					item_tax_template = frappe.db.exists(
+						"Item Tax Template",
+						{
+							"title": item.get("tax_class"), 
+							"company": wc_server.company
+						}
+					) or None
+
+					row.item_tax_template = item_tax_template
+			elif not wc_server.use_actual_tax_type:
 				new_sales_order.taxes_and_charges = wc_server.sales_taxes_and_charges_template
 
 				# Trigger taxes calculation

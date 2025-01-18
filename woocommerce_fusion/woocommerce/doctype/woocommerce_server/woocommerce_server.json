@@ -36,6 +36,7 @@
   "delivery_after_days",
   "uom",
   "section_break_accounting",
+  "use_item_tax_template",
   "tax_account",
   "use_actual_tax_type",
   "sales_taxes_and_charges_template",
@@ -173,17 +174,18 @@
   },
   {
    "default": "1",
+   "depends_on": "eval:!doc.use_item_tax_template",
    "description": "If checked, a 'Sales Taxes and Charges' line of type 'Actual' will be added for every WooCommerce Line Item with tax",
    "fieldname": "use_actual_tax_type",
    "fieldtype": "Check",
    "label": "Use 'Actual' Tax Type"
   },
   {
-   "depends_on": "eval: !doc.use_actual_tax_type;",
+   "depends_on": "eval: !doc.use_actual_tax_type&&!doc.use_item_tax_template;",
    "fieldname": "sales_taxes_and_charges_template",
    "fieldtype": "Link",
    "label": "Sales Taxes and Charges Template",
-   "mandatory_depends_on": "eval: !doc.use_actual_tax_type;",
+   "mandatory_depends_on": "eval: !doc.use_actual_tax_type&&!doc.use_item_tax_template;",
    "options": "Sales Taxes and Charges Template"
   },
   {
@@ -479,11 +481,17 @@
    "fieldname": "create_sales_invoice",
    "fieldtype": "Check",
    "label": "Create Sales Invoice"
+  },
+  {
+   "default": "0",
+   "fieldname": "use_item_tax_template",
+   "fieldtype": "Check",
+   "label": "Use Item Tax Templates"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-18 18:07:43.882619",
+ "modified": "2025-01-18 18:40:51.133362",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",
